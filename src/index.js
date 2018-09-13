@@ -1,20 +1,26 @@
-import _ from 'lodash';
-import printMe from './print.js';
+ import _ from 'lodash';
+ import './style.css'
 
-function component() {
-  var element = document.createElement('div');
-  var btn = document.createElement('button');
+ function component() {
+    var element = document.createElement('div');
+   var button = document.createElement('button');
+   var br = document.createElement('br');
 
-  // Lodash, now imported by this script
-  element.innerHTML = _.join(['Hello', 'webpack'], ' ');
+   button.innerHTML = 'Click me and look at the console!';
+   element.innerHTML = _.join(['Hello', 'webpack'], ' ');
+   element.appendChild(br);
+   element.appendChild(button);
+   element.className = 'hello'
 
+   // Note that because a network request is involved, some indication
+   // of loading would need to be shown in a production-level site/app.
+   button.onclick = e => import(/* webpackChunkName: "print" */ './print').then(module => {
+     var print = module.default;
 
-  btn.innerHTML = 'Click me and check the console!';
-  btn.onclick = printMe;
+     print();
+   });
 
-  element.appendChild(btn);
+    return element;
+  }
 
-  return element;
-}
-
-document.body.appendChild(component());
+ document.body.appendChild(component());
