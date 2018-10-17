@@ -3,8 +3,7 @@ var webpack = require('webpack')
 var HtmlWebpackPlugin = require('html-webpack-plugin')
 var CleanWebpackPlugin = require('clean-webpack-plugin')
 var FileManagerPlugin = require('filemanager-webpack-plugin')
-var noop = function(){
-}
+var noop = function(){}
 
 // webpack --env.prod
 module.exports = function(env, args){
@@ -24,7 +23,7 @@ module.exports = function(env, args){
       filename: '[name].js____[hash:5].js', // 输出包[entry.name] // filename:[chunkhash]不能和热替换插件同用
       chunkFilename: '[name].js____.[hash:5].js',
       path: path.resolve(__dirname, 'dist/assets'), // 输出位置
-      sourceMapFilename: "sourcemaps/[file].map", // sourcemap 路径
+      sourceMapFilename: 'sourcemaps/[file].map', // sourcemap 路径
       publicPath: './assets/', // [index.html]./assets/chunks
     }:{
       // dev
@@ -79,7 +78,7 @@ module.exports = function(env, args){
           test: /\.(png|svg|jpg|gif)$/,
           loader: 'url-loader', // 加载图片返回 base64
           options: {
-            limit: 1024*5, // 超过指定字节，则使用fallback
+            limit: 5*1024, // 超过指定字节，则使用fallback
             fallback: { // 加载图片文件返回uri
               loader: 'file-loader',
               options: {
@@ -98,7 +97,7 @@ module.exports = function(env, args){
         template: './src/index.html',
         filename: env.prod?
           '../index.html':
-          './index.html'
+          './index.html' // 热替换貌似只能跟资源在同层级目录
       }),
       // 模块热替换
       !env.prod? new webpack.HotModuleReplacementPlugin(): noop,
