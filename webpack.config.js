@@ -1,12 +1,31 @@
+/*
+cnpm i -D
+  webpack webpack-cli
+    style-loader css-loader
+    less-loader less
+    postcss-loader autoprefixer
+    url-loader file-loader
+    babel-loader @babel/core @babel/preset-env
+    vue-loader vue-template-compiler vue
+  html-webpack-plugin
+  filemanager-webpack-plugin
+  webpack-dev-server
+*/
+/*
+  "dev": "webpack-dev-server --config webpack.config.js --mode development",
+  "open": "webpack-dev-server --open --config webpack.config.js --mode development",
+  "build": "webpack --env.prod --config webpack.config.js --progress",
+*/
+
 var path = require('path')
 var webpack = require('webpack')
 var HtmlWebpackPlugin = require('html-webpack-plugin')
-var CleanWebpackPlugin = require('clean-webpack-plugin')
 var FileManagerPlugin = require('filemanager-webpack-plugin')
-var noop = function(){}
+var VueLoaderPlugin = require('vue-loader/lib/plugin')
+var noop = function () { }
 
 // webpack --env.prod
-module.exports = function(env, args){
+module.exports = function (env, args) {
   console.log('webpack args:', args)
   env = env || {}
   return {
@@ -25,9 +44,9 @@ module.exports = function(env, args){
       path: path.resolve(__dirname, 'dist/assets'), // 输出位置
       sourceMapFilename: 'sourcemaps/[file].map', // sourcemap 路径
       publicPath: './assets/', // [index.html]./assets/chunks
-    }:{
-      // dev
-    },
+    } : {
+        // dev
+      },
     // 模块加载配置
     module: {
       // loader规则
@@ -38,47 +57,50 @@ module.exports = function(env, args){
           use: {
             loader: 'babel-loader',
             options: {
-              presets: ['@babel/preset-env'],
-              plugins: ['@babel/transform-runtime']
+              // presets: ['@babel/preset-env'],
+              // plugins: ['@babel/transform-runtime']
             }
           }
         },
         {
           test: /\.coffee$/,
-          use: [ 'coffee-loader' ]
+          use: ['coffee-loader']
+        },
+        {
+          test: /\.vue$/,
+          use: ['vue-loader']
         },
         {
           test: /\.css$/,
           use: [
             'style-loader', // css文本转成<style>放到<head>
             'css-loader', // css文件转成文本
+            'postcss-loader',
           ]
         },
         {
           test: /\.less$/,
-          use: [{
-              loader: "style-loader" // creates style nodes from JS strings
-          }, {
-              loader: "css-loader" // translates CSS into CommonJS
-          }, {
-              loader: "less-loader" // compiles Less to CSS
-          }]
+          use: [
+            'style-loader',
+            'css-loader',
+            'postcss-loader',
+            'less-loader',
+          ]
         },
         {
           test: /\.scss$/,
-          use: [{
-              loader: "style-loader" // 将 JS 字符串生成为 style 节点
-          }, {
-              loader: "css-loader" // 将 CSS 转化成 CommonJS 模块
-          }, {
-              loader: "sass-loader" // 将 Sass 编译成 CSS
-          }]
+          use: [
+            'style-loader',
+            'css-loader',
+            'postcss-loader',
+            'sass-loader',
+          ]
         },
         {
-          test: /\.(png|svg|jpg|gif)$/,
+          test: /\.(gif|jpg|jpeg|png|woff|svg|eot|ttf)\??.*$/,
           loader: 'url-loader', // 加载图片返回 base64
           options: {
-            limit: 5*1024, // 超过指定字节，则使用fallback
+            limit: 5 * 1024, // 超过指定字节，则使用fallback
             fallback: { // 加载图片文件返回uri
               loader: 'file-loader',
               options: {
@@ -92,17 +114,18 @@ module.exports = function(env, args){
     },
     // 插件
     plugins: [
+      new VueLoaderPlugin,
       // 生成 dist/index.html
       new HtmlWebpackPlugin({
         template: './src/index.html',
-        filename: env.prod?
-          '../index.html':
+        filename: env.prod ?
+          '../index.html' :
           './index.html' // 热替换貌似只能跟资源在同层级目录
       }),
       // 模块热替换
-      !env.prod? new webpack.HotModuleReplacementPlugin(): noop,
+      !env.prod ? new webpack.HotModuleReplacementPlugin() : noop,
       // 删除与打包
-      env.prod? new FileManagerPlugin({
+      env.prod ? new FileManagerPlugin({
         onStart: {
           delete: [
             // 'dist',
@@ -112,7 +135,7 @@ module.exports = function(env, args){
           ],
         },
         onEnd: {
-          archive:[{
+          archive: [{
             source: './dist',
             destination: './dist.zip'
           }]
@@ -120,7 +143,7 @@ module.exports = function(env, args){
       }) : noop,
     ],
     // source map
-    devtool: 'source-map',
+    // devtool: 'source-map',
     // 开发服务器 webpack-dev-server
     devServer: {
       hot: true, // 模块热替换
