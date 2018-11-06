@@ -1,51 +1,66 @@
 /*
 cnpm i -D
-  webpack webpack-cli
-    style-loader css-loader
-    less-loader less
-    postcss-loader autoprefixer
-    url-loader file-loader
-    babel-loader @babel/core @babel/preset-env
-    vue-loader vue-template-compiler vue
-  html-webpack-plugin
-  filemanager-webpack-plugin
-  webpack-dev-server
+webpack webpack-cli
+style-loader css-loader
+less-loader less
+postcss-loader autoprefixer
+url-loader file-loader
+babel-loader@8.0.0-beta.0 @babel/core @babel/preset-env
+vue-loader vue-template-compiler vue
+html-webpack-plugin
+filemanager-webpack-plugin
+webpack-dev-server
 */
 /*
-  "dev": "webpack-dev-server --config webpack.config.js --mode development",
-  "open": "webpack-dev-server --open --config webpack.config.js --mode development",
-  "build": "webpack --env.prod --config webpack.config.js --progress",
+"dev": "webpack-dev-server --config webpack.config.js --mode development",
+"open": "webpack-dev-server --open --config webpack.config.js --mode development",
+"build": "webpack --env.production --config webpack.config.js --progress",
 */
 
-var path = require('path')
-var webpack = require('webpack')
-var HtmlWebpackPlugin = require('html-webpack-plugin')
-var FileManagerPlugin = require('filemanager-webpack-plugin')
-var VueLoaderPlugin = require('vue-loader/lib/plugin')
-var noop = function () { }
+const path = require('path')
+const webpack = require('webpack')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const FileManagerPlugin = require('filemanager-webpack-plugin')
+const VueLoaderPlugin = require('vue-loader/lib/plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
-// webpack --env.prod
+// const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+
 module.exports = function (env, args) {
-  console.log('webpack args:', args)
+  // $ webpack --env.production
+  // console.log('webpack args:', args)
+
   env = env || {}
   return {
-    mode: 'production', // --mode=production webpack 4+ 压缩输出
+    // --mode=production webpack 4+ 压缩输出
+    mode: 'production',
     // 打包入口
     entry: {
       // 一个入口对应一个包
       // 入口包不能同时是子chunk
-      app: './src/index.js',
-      print: './src/print.js',
+      main: './src/main',
+      // vendors: './src/vendors',
+      // test: './test.js'
     },
     // 输出配置
-    output: env.prod ? {
-      filename: '[name].js____[hash:5].js', // 输出包[entry.name] // filename:[chunkhash]不能和热替换插件同用
-      chunkFilename: '[name].js____.[hash:5].js',
-      path: path.resolve(__dirname, 'dist/assets'), // 输出位置
-      sourceMapFilename: 'sourcemaps/[file].map', // sourcemap 路径
-      publicPath: './assets/', // [index.html]./assets/chunks
-    } : {
-        // dev
+    output: env.production ?
+      // production
+      {
+        // [path]/[entry.name]
+        // 输出包[entry.name] 
+        // filename:[chunkhash]不能和热替换插件同用
+        filename: '[name].js____[hash:5].js',
+        // [path]/js/[chunk]
+        chunkFilename: 'js/[name].js____.[hash:5].js',
+        // [path]: output file root
+        path: path.resolve(__dirname, 'dist/assets'),
+        // [path]/sourcemaps
+        sourceMapFilename: 'sourcemaps/[file].map',
+        // [index.html]./assets/[filename]
+        publicPath: './assets/',
+      } :
+      // dev
+      {
       },
     // 模块加载配置
     module: {
@@ -68,25 +83,52 @@ module.exports = function (env, args) {
         },
         {
           test: /\.vue$/,
-          use: ['vue-loader']
-        },
-        {
-          test: /\.css$/,
           use: [
-            'style-loader', // css文本转成<style>放到<head>
-            'css-loader', // css文件转成文本
-            'postcss-loader',
+            'vue-loader'
           ]
         },
         {
-          test: /\.less$/,
+          test: /\.(css|less)$/,
+          // --
           use: [
-            'style-loader',
+            // 'style-loader', // css文本转成<style>放到<head>
+            {
+              loader: 'style-loader',
+              options: {
+                // 运行时文本替换
+                transform: './webpack.style-loader.transform.js'
+              }
+            },
+            'css-loader', // css文件转成文本
+            'postcss-loader',
+            'less-loader',
+          ],
+          // ++
+          use: [
+            env.production ?
+              {
+                loader: MiniCssExtractPlugin.loader, // css 提取出单独文件[]
+                options: {
+                  publicPath: '../'
+                }
+              } : 'style-loader',
             'css-loader',
             'postcss-loader',
             'less-loader',
+            // 文本替换
+            {
+              loader: 'string-replace-loader',
+              options: {
+                multiple: [
+                  {
+                    search: 'MicrosoftYaHei-Bold', replace: 'MicrosoftYaHei;font-weight:bold', flags: 'ig',
+                  }
+                ]
+              }
+            }
           ]
         },
+        // ...
         {
           test: /\.scss$/,
           use: [
@@ -96,16 +138,20 @@ module.exports = function (env, args) {
             'sass-loader',
           ]
         },
+        // 二进制文件
         {
           test: /\.(gif|jpg|jpeg|png|woff|svg|eot|ttf)\??.*$/,
-          loader: 'url-loader', // 加载图片返回 base64
+          // 转 base64
+          loader: 'url-loader',
           options: {
-            limit: 5 * 1024, // 超过指定字节，则使用fallback
-            fallback: { // 加载图片文件返回uri
+            // 超过指定字节，则使用fallback
+            limit: 2 * 1024,
+            fallback: {
+              // 打包文件并返回uri
               loader: 'file-loader',
               options: {
                 name: 'img/[name].[ext]____[hash:5].[ext]',
-                name: '[name].[ext]____[hash:5].[ext]',
+                // name: '[name].[ext]____[hash:5].[ext]',
               }
             },
           },
@@ -114,43 +160,103 @@ module.exports = function (env, args) {
     },
     // 插件
     plugins: [
+      // vue 语言块映射到配置好的语言loader
+      // 比如 <script> 映射到 '.js' loader
       new VueLoaderPlugin,
-      // 生成 dist/index.html
+      // 生成 index.html
       new HtmlWebpackPlugin({
-        template: './src/index.html',
-        filename: env.prod ?
-          '../index.html' :
+        // 文件模板
+        template: './index.html',
+        // 输出位置
+        filename: env.production ?
+          '../index.html' : // dist/assets/../index.html
           './index.html' // 热替换貌似只能跟资源在同层级目录
       }),
-      // 模块热替换
-      !env.prod ? new webpack.HotModuleReplacementPlugin() : noop,
-      // 删除与打包
-      env.prod ? new FileManagerPlugin({
-        onStart: {
-          delete: [
-            // 'dist',
-            // 'dist/*',
-            'dist/index.html',
-            'dist/assets/*'
-          ],
-        },
-        onEnd: {
-          archive: [{
-            source: './dist',
-            destination: './dist.zip'
-          }]
+      // 定义变量 process.env
+      new webpack.DefinePlugin({
+        'process.env': {
+          NODE_ENV: env.production ? '"production"' : '"development"'
         }
-      }) : noop,
-    ],
+      }),
+    ]
+      // 开发环境
+      .concat(
+        !env.production ? [
+          // 模块热替换[]
+          new webpack.HotModuleReplacementPlugin(),
+        ] : [])
+      // 生产环境
+      .concat(
+        env.production ? [
+          // css 提取出单独文件[]
+          new MiniCssExtractPlugin({
+            filename: "css/[name].[hash:5].css",
+            chunkFilename: "css/[id].[hash:5].css"
+          }),
+          // 删除与打包
+          new FileManagerPlugin({
+            onStart: {
+              delete: [
+                // 'dist',
+                'dist/*',
+                'dist/index.html',
+                'dist/assets/*',
+                'dist.*',
+              ],
+            },
+            onEnd: {
+              archive: [{
+                source: './dist',
+                destination: './dist.' + function () {
+                  var date = new Date
+                  return [
+                    // date.getFullYear(),
+                    date.getMonth() + 1,
+                    '-',
+                    date.getDate(),
+                    '_',
+                    date.getHours(),
+                    '-',
+                    date.getMinutes(),
+                    // date.getSeconds()
+                  ].map((item) => {
+                    return item < 10 ? '0' + item : item
+                  }).join('')
+                }() + '.zip'
+              }]
+            }
+          }),
+        ] : []),
     // source map
-    // devtool: 'source-map',
+    devtool: 'source-map',
     // 开发服务器 webpack-dev-server
     devServer: {
-      hot: true, // 模块热替换
+      hot: true, // 模块热替换[]
       historyApiFallback: true, // 404->index.html
+      // 接口代理
+      proxy: {
+        '///userOperating': {
+          target: 'http://172.16.140.67:8091',
+          changeOrigin: true
+          // secure: false,
+        }
+      }
     },
     // performance: {
-    //   // hints: false, // 判断警告提示
-    // }
+    //   // hints: false, // 警告提示
+    // }  
+    optimization: {
+      // 代码分离
+      splitChunks: {
+        cacheGroups: {
+          // 依赖库单独打包 vendors.js
+          commons: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all'
+          }
+        }
+      }
+    }
   }
 }
